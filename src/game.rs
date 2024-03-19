@@ -10,6 +10,7 @@ use crossterm::cursor::{Show, MoveTo, Hide};
 use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers, KeyEvent};
 use crate::command::Command;
 use rand::Rng;
+use enigo::*;
 
 const MAX_INTERVAL: u16 = 700;
 const MIN_INTERVAL: u16 = 200;
@@ -39,6 +40,7 @@ impl Game {
             snake: Snake::new(
                 Point::new(width / 2, height / 2),
                 3,
+                // generate a random orientation for the snake to start
                 match rand::thread_rng().gen_range(0..4) {
                     0 => Direction::Up,
                     1 => Direction::Right,
@@ -111,6 +113,8 @@ impl Game {
         self.draw_snake();
     }
 
+    // generate a random point on the board until one is found not 
+    // overlapping with the snake
     fn place_food(&mut self) {
         loop {
             let random_x = rand::thread_rng().gen_range(0..self.width);
@@ -124,7 +128,15 @@ impl Game {
     }
 
     fn prepare_ui(&mut self) {
+        // overrides normal terminal event handling
         enable_raw_mode().unwrap();
+        let mut enigo = Enigo::new();
+        
+        // auto-resize the terminal
+        enigo.key_down(Key::Control);
+        enigo.mouse_scroll_y(-12);
+        enigo.key_up(Key::Control);
+
         self.stdout
             .execute(SetSize(self.width + 3, self.height + 3)).unwrap()
             .execute(Clear(ClearType::All)).unwrap()
@@ -232,7 +244,7 @@ impl Game {
                         }
                     }
                 } else {
-                    'O'
+                    '⚉'
                 }
             } else if let Some(&previous) = previous {
                 if body.y == previous.y {
@@ -256,7 +268,8 @@ impl Game {
         for food in self.food.iter() {
             self.stdout
                 .execute(MoveTo(food.x + 1, food.y + 1)).unwrap()
-                .execute(Print("•")).unwrap();
+                .execute(SetForegroundColor(Color::Red)).unwrap()
+                .execute(Print("●")).unwrap();
         }
     }
 
@@ -278,27 +291,27 @@ impl Game {
         for y in 0..self.height + 2 {
             self.stdout
                 .execute(MoveTo(0, y)).unwrap()
-                .execute(Print("#")).unwrap()
+                .execute(Print("║")).unwrap()
                 .execute(MoveTo(self.width + 1, y)).unwrap()
-                .execute(Print("#")).unwrap();
+                .execute(Print("║")).unwrap();
         }
 
         for x in 0..self.width + 2 {
             self.stdout
                 .execute(MoveTo(x, 0)).unwrap()
-                .execute(Print("#")).unwrap()
+                .execute(Print("═")).unwrap()
                 .execute(MoveTo(x, self.height + 1)).unwrap()
-                .execute(Print("#")).unwrap();
+                .execute(Print("═")).unwrap();
         }
 
         self.stdout
             .execute(MoveTo(0, 0)).unwrap()
-            .execute(Print("#")).unwrap()
+            .execute(Print("╔")).unwrap()
             .execute(MoveTo(self.width + 1, self.height + 1)).unwrap()
-            .execute(Print("#")).unwrap()
+            .execute(Print("╝")).unwrap()
             .execute(MoveTo(self.width + 1, 0)).unwrap()
-            .execute(Print("#")).unwrap()
+            .execute(Print("╗")).unwrap()
             .execute(MoveTo(0, self.height + 1)).unwrap()
-            .execute(Print("#")).unwrap();
+            .execute(Print("╚")).unwrap();
     }
 }
